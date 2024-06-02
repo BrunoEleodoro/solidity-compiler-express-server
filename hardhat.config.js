@@ -14,6 +14,10 @@ module.exports = {
         version: "0.8.4",
         settings: {},
       },
+      {
+        version: "0.8.20",
+        settings: {},
+      },
     ],   
   },
   defaultNetwork: "hardhat",

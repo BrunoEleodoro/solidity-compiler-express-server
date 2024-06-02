@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "engines": {
-    "node": "18.12.1",
+    "node": ">=18.16",
     "npm": "8.19.2"
   },
   "scripts": {
@@ -30,10 +30,8 @@
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
-    "@openzeppelin/contracts": "4.9.2",
-    "@openzeppelin/contracts-upgradeable": "4.9.2",
-    "@superfluid-finance/custom-supertokens": "superfluid-finance/custom-supertokens",
-    "@superfluid-finance/protocol-monorepo": "superfluid-finance/protocol-monorepo",
+    "@openzeppelin/contracts": "5.0.2",
+    "@openzeppelin/contracts-upgradeable": "5.0.2",
     "ethers": "^5.7.2",
     "hardhat": "^2.17.0"
   }

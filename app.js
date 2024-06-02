@@ -57,7 +57,7 @@ const corsOptions = {
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
 
-console.log({corsOptions, port, isDev, animal});
+console.log({ corsOptions, port, isDev, animal });
 
 app.use(cors(corsOptions));
 
@@ -93,33 +93,88 @@ module.exports = {
 
 // Endpoint to compile solidity code
 app.post('/compile', async (req, res) => {
-    const input = req.body.code;
-    const name = req.body.name;
-    console.log(`Compiling ${name}... `, { input });
-    // Write the Solidity code to a .sol file
-    fs.writeFileSync(path.join(contractDir, `${name}.sol`), input);
+  const input = req.body.code;
+  const name = req.body.name;
+  console.log(`Compiling ${name}... `, { input });
+  // Write the Solidity code to a .sol file
+  fs.writeFileSync(path.join(contractDir, `${name}.sol`), input);
 
   exec('npx hardhat compile', (error, stdout, stderr) => {
-      if (error) {
-        console.log(`error: ${error.message}`);
-        res.status(500).send({ error: error.message });
-        return;
-      }
-      if (stderr) {
-        console.log(`stderr: ${stderr}`);
-        res.status(500).send({ error: stderr });
-        return;
-      }
-      const artifactPath = path.join(artifactsDir, `contracts/${name}.sol/${name}.json`);
-      if (fs.existsSync(artifactPath)) {
-        const compiled = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
-        console.log(`Compiled ${name}!`, { compiled, stdout });
-        res.send(compiled);
-        return;
-      }
+    if (error) {
+      console.log(`error: ${error.message}`);
+      res.status(500).send({ error: error.message });
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      res.status(500).send({ error: stderr });
+      return;
+    }
+    const artifactPath = path.join(artifactsDir, `contracts/${name}.sol/${name}.json`);
+    if (fs.existsSync(artifactPath)) {
+      const compiled = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+      console.log(`Compiled ${name}!`, { compiled, stdout });
+      res.send(compiled);
+      return;
+    }
 
-    });
   });
+});
+
+// Endpoint to compile solidity code
+app.post('/compile-erc20', async (req, res) => {
+  function erc20template(name, symbol) {
+    return `
+    // SPDX-License-Identifier: MIT
+    // Compatible with OpenZeppelin Contracts ^5.0.0
+    pragma solidity ^0.8.20;
+    
+    import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+    import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+    import "@openzeppelin/contracts/access/Ownable.sol";
+    
+    contract ${name} is ERC20, ERC20Burnable, Ownable {
+        constructor(address initialOwner)
+            ERC20("${name}", "${symbol}")
+            Ownable(initialOwner)
+        {
+            _mint(msg.sender, 100000 * 10 ** decimals());
+        }
+    
+        function mint(address to, uint256 amount) public onlyOwner {
+            _mint(to, amount);
+        }
+    }
+    `
+  }
+  const name = req.body.name;
+  const symbol = req.body.symbol;
+  console.log(`Compiling ${name}... `);
+  // Write the Solidity code to a .sol file
+  fs.writeFileSync(path.join(contractDir, `${name}.sol`), erc20template(name, symbol));
+
+  exec('npx hardhat compile', (error, stdout, stderr) => {
+    console.log({error, stdout, stderr});
+    if (error) {
+      console.log(`error: ${error.message}`);
+      res.status(500).send({ error: error.message });
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      res.status(500).send({ error: stderr });
+      return;
+    }
+    const artifactPath = path.join(artifactsDir, `contracts/${name}.sol/${name}.json`);
+    if (fs.existsSync(artifactPath)) {
+      const compiled = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+      console.log(`Compiled ${name}!`, { compiled, stdout });
+      res.send({ bytecode: compiled.bytecode });
+      return;
+    }
+
+  });
+});
 
 // Endpoint to deploy compiled code
 app.post('/deploy', async (req, res) => {
